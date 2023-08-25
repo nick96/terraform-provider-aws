@@ -533,6 +533,10 @@ func expandResponseHeadersPolicyCorsConfig(tfMap map[string]interface{}) *cloudf
 
 	if v, ok := tfMap["access_control_expose_headers"].([]interface{}); ok && len(v) > 0 && v[0] != nil {
 		apiObject.AccessControlExposeHeaders = expandResponseHeadersPolicyAccessControlExposeHeaders(v[0].(map[string]interface{}))
+	} else {
+		apiObject.AccessControlExposeHeaders = &cloudfront.ResponseHeadersPolicyAccessControlExposeHeaders{
+			Quantity: aws.Int64(0),
+		}
 	}
 
 	if v, ok := tfMap["access_control_max_age_sec"].(int); ok && v != 0 {
@@ -601,7 +605,7 @@ func expandResponseHeadersPolicyAccessControlExposeHeaders(tfMap map[string]inte
 
 	apiObject := &cloudfront.ResponseHeadersPolicyAccessControlExposeHeaders{}
 
-	if v, ok := tfMap["items"].(*schema.Set); ok && v.Len() > 0 {
+	if v, ok := tfMap["items"].(*schema.Set); ok {
 		items := flex.ExpandStringSet(v)
 		apiObject.Items = items
 		apiObject.Quantity = aws.Int64(int64(len(items)))
@@ -633,9 +637,7 @@ func flattenResponseHeadersPolicyCorsConfig(apiObject *cloudfront.ResponseHeader
 		tfMap["access_control_allow_origins"] = []interface{}{v}
 	}
 
-	if v := flattenResponseHeadersPolicyAccessControlExposeHeaders(apiObject.AccessControlExposeHeaders); len(v) > 0 {
-		tfMap["access_control_expose_headers"] = []interface{}{v}
-	}
+	tfMap["access_control_expose_headers"] = []interface{}{flattenResponseHeadersPolicyAccessControlExposeHeaders(apiObject.AccessControlExposeHeaders)}
 
 	if v := apiObject.AccessControlMaxAgeSec; v != nil {
 		tfMap["access_control_max_age_sec"] = aws.Int64Value(v)
@@ -695,13 +697,9 @@ func flattenResponseHeadersPolicyAccessControlExposeHeaders(apiObject *cloudfron
 		return nil
 	}
 
-	tfMap := map[string]interface{}{}
-
-	if v := apiObject.Items; len(v) > 0 {
-		tfMap["items"] = aws.StringValueSlice(v)
+	return map[string]interface{}{
+		"items": aws.StringValueSlice(apiObject.Items),
 	}
-
-	return tfMap
 }
 
 //
