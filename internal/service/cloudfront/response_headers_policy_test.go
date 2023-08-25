@@ -99,6 +99,45 @@ func TestAccCloudFrontResponseHeadersPolicy_cors(t *testing.T) {
 	})
 }
 
+func TestAccCloudFrontResponseHeadersPolicy_corsEmpty(t *testing.T) {
+	ctx := acctest.Context(t)
+	rName := sdkacctest.RandomWithPrefix(acctest.ResourcePrefix)
+	resourceName := "aws_cloudfront_response_headers_policy.empty_test"
+
+	resource.ParallelTest(t, resource.TestCase{
+		PreCheck:                 func() { acctest.PreCheck(ctx, t); acctest.PreCheckPartitionHasService(t, cloudfront.EndpointsID) },
+		ErrorCheck:               acctest.ErrorCheck(t, cloudfront.EndpointsID),
+		ProtoV5ProviderFactories: acctest.ProtoV5ProviderFactories,
+		CheckDestroy:             testAccCheckResponseHeadersPolicyDestroy(ctx),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResponseHeadersPolicyConfig_corsEmpty(rName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckResponseHeadersPolicyExists(ctx, resourceName),
+					resource.TestCheckResourceAttr(resourceName, "cors_config.#", "1"),
+					resource.TestCheckResourceAttr(resourceName, "cors_config.0.access_control_expose_headers.#", "1"),
+					resource.TestCheckResourceAttr(resourceName, "cors_config.0.access_control_expose_headers.0.items.#", "0"),
+				),
+			},
+			{
+				ResourceName:            resourceName,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{},
+			},
+			{
+				Config: testAccResponseHeadersPolicyConfig_corsEmpty(rName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckResponseHeadersPolicyExists(ctx, resourceName),
+					resource.TestCheckResourceAttr(resourceName, "cors_config.#", "1"),
+					resource.TestCheckResourceAttr(resourceName, "cors_config.0.access_control_expose_headers.#", "1"),
+					resource.TestCheckResourceAttr(resourceName, "cors_config.0.access_control_expose_headers.0.items.#", "0"),
+				),
+			},
+		},
+	})
+}
+
 func TestAccCloudFrontResponseHeadersPolicy_customHeaders(t *testing.T) {
 	ctx := acctest.Context(t)
 	rName := sdkacctest.RandomWithPrefix(acctest.ResourcePrefix)
@@ -482,6 +521,37 @@ resource "aws_cloudfront_response_headers_policy" "test" {
     access_control_expose_headers {
       items = ["HEAD"]
     }
+
+    access_control_max_age_sec = 3600
+
+    origin_override = false
+  }
+}
+`, rName)
+}
+
+func testAccResponseHeadersPolicyConfig_corsEmpty(rName string) string {
+	return fmt.Sprintf(`
+resource "aws_cloudfront_response_headers_policy" "empty_test" {
+  name    = %[1]q
+  comment = "empty expose headers response sheaders policy"
+
+  cors_config {
+    access_control_allow_credentials = true
+
+    access_control_allow_headers {
+      items = ["X-Header1"]
+    }
+
+    access_control_allow_methods {
+      items = ["GET", "POST"]
+    }
+
+    access_control_allow_origins {
+      items = ["test2.example.com"]
+    }
+
+    access_control_expose_headers { }
 
     access_control_max_age_sec = 3600
 
